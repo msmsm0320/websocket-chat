@@ -20,7 +20,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
-    private static final int MAX_CONNECTIONS_PER_IP = 3;
+    private static final int MAX_CONNECTIONS_PER_IP = 1;
     private static final int MAX_MESSAGES_PER_SECOND = 5;
 
 
