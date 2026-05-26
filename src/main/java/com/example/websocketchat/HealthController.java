@@ -1,4 +1,4 @@
-﻿package com.example.websocketchat;
+package com.example.websocketchat;
 
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
