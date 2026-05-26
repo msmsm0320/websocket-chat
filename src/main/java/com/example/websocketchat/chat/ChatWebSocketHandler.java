@@ -20,7 +20,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
-    private static final int MAX_CONNECTIONS_PER_IP = 1;
+    private static final int MAX_CONNECTIONS_PER_IP = 2;
     private static final int MAX_MESSAGES_PER_SECOND = 5;
 
 
@@ -30,6 +30,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final Map<String, Set<String>> sessionIdsByIp = new ConcurrentHashMap<>();
     private final Map<String, String> ipBySessionId = new ConcurrentHashMap<>();
+    private final Map<String, String> nicknameBySessionId = new ConcurrentHashMap<>();
     private final Map<String, List<Long>> messageTimestampsBySessionId = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ObjectMapper objectMapper) {
@@ -68,10 +69,28 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         ChatMessage chatMessage = objectMapper.readValue(message.getPayload(), ChatMessage.class);
 
         if (chatMessage.type() == MessageType.JOIN) {
-            String sender = normalize(chatMessage.sender(), "\uC775\uBA85");
+            String sender = normalize(chatMessage.sender(), "익명");
+
+            if (!isValidNickname(sender)) {
+                sendTo(session, systemMessage("닉네임은 한글, 영문, 숫자 2~10자만 사용할 수 있습니다."));
+                session.close(CloseStatus.POLICY_VIOLATION.withReason("Invalid nickname"));
+                return;
+            }
+
+            if (!sender.equals("익명") && isDuplicateNickname(sender)) {
+                sendTo(session, systemMessage("이미 사용 중인 닉네임입니다."));
+                session.close(CloseStatus.POLICY_VIOLATION.withReason("Duplicate nickname"));
+                return;
+            }
+
             String senderWithIp = sender + " (" + getClientIp(session) + ")";
+
+            if (!sender.equals("익명")) {
+                nicknameBySessionId.put(session.getId(), sender);
+            }
             sendersBySessionId.put(session.getId(), senderWithIp);
-            broadcast(systemMessage(senderWithIp + "\uB2D8\uC774 \uC785\uC7A5\uD588\uC2B5\uB2C8\uB2E4."));
+
+            broadcast(systemMessage(senderWithIp + "님이 입장했습니다."));
             sendUserList();
             return;
         }
@@ -107,6 +126,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         messageTimestampsBySessionId.remove(session.getId());
 
         String sender = sendersBySessionId.remove(session.getId());
+        nicknameBySessionId.remove(session.getId());
 
         if (sender != null) {
             broadcast(systemMessage(sender + "님이 퇴장했습니다."));
@@ -189,5 +209,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             timestamps.add(now);
             return false;
         }
+    }
+
+    private boolean isDuplicateNickname(String nickname) {
+        return sendersBySessionId.values().stream()
+                .anyMatch(value -> value.startsWith(nickname + " ("));
+    }
+
+    private boolean isValidNickname(String nickname) {
+        return nickname.matches("^[a-zA-Z0-9가-힣]{2,10}$");
     }
 }
