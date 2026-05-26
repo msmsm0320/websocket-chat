@@ -8,22 +8,32 @@
 </head>
 <body>
 <main class="app">
-    <section class="chat">
-        <header class="chat__header">
-            <div>
-                <h1>Spring WebSocket Chat</h1>
-                <p id="status">연결 대기 중</p>
-            </div>
-            <button id="connectButton" type="button">연결</button>
-        </header>
+    <section class="chat-shell">
+        <section class="chat" aria-label="&#52292;&#54021;">
+            <header class="chat__header">
+                <div>
+                    <h1>Spring WebSocket Chat</h1>
+                    <p id="status">&#50672;&#44208; &#45824;&#44592; &#51473;</p>
+                </div>
+                <button id="connectButton" type="button">&#50672;&#44208;</button>
+            </header>
 
-        <div id="messages" class="messages" aria-live="polite"></div>
+            <div id="messages" class="messages" aria-live="polite"></div>
 
-        <form id="chatForm" class="chat__form">
-            <input id="senderInput" type="text" maxlength="20" placeholder="이름" autocomplete="nickname">
-            <input id="messageInput" type="text" maxlength="500" placeholder="메시지를 입력하세요" autocomplete="off" disabled>
-            <button id="sendButton" type="submit" disabled>전송</button>
-        </form>
+            <form id="chatForm" class="chat__form">
+                <input id="senderInput" type="text" maxlength="20" placeholder="&#51060;&#47492;" autocomplete="nickname">
+                <input id="messageInput" type="text" maxlength="500" placeholder="&#47700;&#49884;&#51648;&#47484; &#51077;&#47141;&#54616;&#49464;&#50836;" autocomplete="off" disabled>
+                <button id="sendButton" type="submit" disabled>&#51204;&#49569;</button>
+            </form>
+        </section>
+
+        <aside class="users" aria-label="&#54788;&#51116; &#51217;&#49549;&#51088;">
+            <header class="users__header">
+                <h2>&#51217;&#49549;&#51088;</h2>
+                <span id="userCount">0</span>
+            </header>
+            <ul id="userList" class="users__list"></ul>
+        </aside>
     </section>
 </main>
 <script src="/app.js"></script>

@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +32,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
         sendTo(session, systemMessage("\uCC44\uD305\uBC29\uC5D0 \uC5F0\uACB0\uB418\uC5C8\uC2B5\uB2C8\uB2E4."));
+        sendUserList();
     }
 
     @Override
@@ -40,6 +44,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String senderWithIp = sender + " (" + getClientIp(session) + ")";
             sendersBySessionId.put(session.getId(), senderWithIp);
             broadcast(systemMessage(senderWithIp + "\uB2D8\uC774 \uC785\uC7A5\uD588\uC2B5\uB2C8\uB2E4."));
+            sendUserList();
             return;
         }
 
@@ -48,7 +53,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String content = normalize(chatMessage.content(), "");
 
             if (!content.isBlank()) {
-                broadcast(new ChatMessage(MessageType.CHAT, sender, content, Instant.now()));
+                broadcast(new ChatMessage(MessageType.CHAT, sender, content, Instant.now(), null));
             }
         }
     }
@@ -61,6 +66,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         if (sender != null) {
             broadcast(systemMessage(sender + "\uB2D8\uC774 \uD1F4\uC7A5\uD588\uC2B5\uB2C8\uB2E4."));
         }
+
+        sendUserList();
     }
 
     private void broadcast(ChatMessage message) throws IOException {
@@ -71,6 +78,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 sendPayload(session, payload);
             }
         }
+    }
+
+    private void sendUserList() throws IOException {
+        List<String> users = new ArrayList<>(sendersBySessionId.values());
+        users.sort(Comparator.naturalOrder());
+        broadcast(new ChatMessage(MessageType.USERS, "system", null, Instant.now(), users));
     }
 
     private void sendTo(WebSocketSession session, ChatMessage message) throws IOException {
@@ -86,7 +99,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     private ChatMessage systemMessage(String content) {
-        return new ChatMessage(MessageType.SYSTEM, "system", content, Instant.now());
+        return new ChatMessage(MessageType.SYSTEM, "system", content, Instant.now(), null);
     }
 
     private String normalize(String value, String fallback) {
