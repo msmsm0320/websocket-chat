@@ -1,0 +1,151 @@
+:root {
+    color-scheme: light;
+    font-family: Arial, "Noto Sans KR", sans-serif;
+    background: #f4f6f8;
+    color: #1d2733;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.app {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.chat {
+    width: min(760px, 100%);
+    height: min(720px, calc(100vh - 48px));
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border: 1px solid #d9e0e8;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.chat__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px;
+    border-bottom: 1px solid #e6ebf0;
+}
+
+h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+}
+
+p {
+    margin: 0;
+    color: #657386;
+}
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px;
+    overflow-y: auto;
+    background: #f9fafb;
+}
+
+.message {
+    max-width: 78%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #e0e6ed;
+}
+
+.message--mine {
+    align-self: flex-end;
+    background: #e8f3ff;
+    border-color: #bfdfff;
+}
+
+.message--system {
+    align-self: center;
+    max-width: 100%;
+    color: #657386;
+    background: transparent;
+    border: 0;
+    padding: 4px 8px;
+}
+
+.message__meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: #657386;
+    font-size: 12px;
+}
+
+.message__content {
+    word-break: break-word;
+    line-height: 1.45;
+}
+
+.chat__form {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 10px;
+    padding: 16px;
+    border-top: 1px solid #e6ebf0;
+}
+
+input {
+    min-width: 0;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+button {
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 16px;
+    color: #ffffff;
+    background: #2563eb;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: #9aa8b7;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .app {
+        padding: 0;
+    }
+
+    .chat {
+        height: 100vh;
+        border-radius: 0;
+        border: 0;
+    }
+
+    .chat__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .chat__form {
+        grid-template-columns: 1fr;
+    }
+}
