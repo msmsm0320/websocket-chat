@@ -87,6 +87,7 @@ function appendMessage(message) {
     const isMine = message.type === "CHAT" && message.sender.startsWith(`${sender} (`);
 
     messageElement.className = "message";
+
     if (isSystem) {
         messageElement.classList.add("message--system");
         messageElement.textContent = message.content;
@@ -103,7 +104,16 @@ function appendMessage(message) {
         contentElement.className = "message__content";
         contentElement.textContent = message.content;
 
-        messageElement.append(metaElement, contentElement);
+        const ttsButton = document.createElement("button");
+        ttsButton.type = "button";
+        ttsButton.className = "message__tts";
+        ttsButton.textContent = "읽기";
+
+        ttsButton.addEventListener("click", function () {
+            readText(message.content);
+        });
+
+        messageElement.append(metaElement, contentElement, ttsButton);
     }
 
     messagesElement.appendChild(messageElement);
@@ -136,4 +146,21 @@ function formatTime(value) {
         hour: "2-digit",
         minute: "2-digit"
     }).format(new Date(value));
+}
+
+function readText(text) {
+    if (!window.speechSynthesis) {
+        alert("이 브라우저는 음성 읽기를 지원하지 않습니다.");
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ko-KR";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    speechSynthesis.speak(utterance);
 }
