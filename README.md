@@ -1,43 +1,37 @@
 # Spring WebSocket Chat
 
-Spring Boot의 기본 WebSocket 기능으로 만든 간단한 채팅 예제입니다. 브라우저 쪽은 별도 프레임워크 없이 기본 `WebSocket` API만 사용합니다.
+Spring Boot WebSocket으로 만든 간단한 채팅 예제입니다. 브라우저는 별도 프레임워크 없이 기본 `WebSocket` API를 사용합니다.
 
-## 구조
-
-- `ChatWebSocketConfig`: `/ws/chat` WebSocket 엔드포인트 등록
-- `ChatWebSocketHandler`: 접속, 메시지 수신, 전체 브로드캐스트 처리
-- `ChatMessage`: 클라이언트와 서버가 주고받는 메시지 형식
-- `src/main/resources/static`: 브라우저 채팅 화면
-
-## 실행
-
-이 폴더에서 Maven으로 실행합니다.
+## 로컬 실행
 
 ```powershell
 mvn spring-boot:run
 ```
 
-실행 후 브라우저에서 아래 주소를 엽니다.
+브라우저에서 `http://localhost:8080`을 엽니다.
 
-```text
-http://localhost:8080
-```
+## Render 임시 배포
 
-현재 PC에 Maven이 없다면 먼저 Maven을 설치하거나 IDE(IntelliJ IDEA, Eclipse 등)에서 `pom.xml`을 Maven 프로젝트로 열어 실행하면 됩니다.
+이 프로젝트는 Render Docker 배포용 파일을 포함합니다.
+
+- `Dockerfile`: Maven으로 jar를 빌드한 뒤 Java 17 런타임에서 실행
+- `render.yaml`: Render Blueprint 설정
+- `/health`: Render 헬스 체크 엔드포인트
+
+Render Dashboard에서 배포하는 경우:
+
+1. `New` > `Blueprint` 또는 `Web Service`를 선택합니다.
+2. GitHub 저장소 `msmsm0320/websocket-chat`을 연결합니다.
+3. Blueprint를 쓰면 루트의 `render.yaml`을 선택합니다.
+4. Web Service로 직접 만들면 Runtime은 `Docker`를 선택합니다.
+
+배포 후 Render가 발급한 `https://...onrender.com` 주소로 접속하면 됩니다.
 
 ## 메시지 흐름
 
-1. 브라우저가 `ws://localhost:8080/ws/chat`으로 접속합니다.
-2. 접속 직후 클라이언트가 `JOIN` 메시지를 보냅니다.
-3. 채팅 입력 시 클라이언트가 `CHAT` 메시지를 보냅니다.
-4. 서버는 받은 메시지를 현재 접속 중인 모든 세션에 다시 전송합니다.
+1. 브라우저가 `/ws/chat` WebSocket 엔드포인트로 접속합니다.
+2. 접속 직후 `JOIN` 메시지를 보냅니다.
+3. 채팅 입력 시 `CHAT` 메시지를 보냅니다.
+4. 서버는 받은 메시지를 현재 접속 중인 모든 세션에 브로드캐스트합니다.
 
-예시 메시지:
-
-```json
-{
-  "type": "CHAT",
-  "sender": "홍길동",
-  "content": "안녕하세요"
-}
-```
+사용자 이름은 서버에서 `이름 (IP)` 형태로 저장합니다. Render 배포 환경에서는 프록시 헤더인 `X-Forwarded-For`를 먼저 사용합니다.
