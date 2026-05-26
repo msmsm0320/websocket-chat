@@ -20,9 +20,17 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
+    private static final int MAX_CONNECTIONS_PER_IP = 3;
+    private static final int MAX_MESSAGES_PER_SECOND = 5;
+
+
     private final ObjectMapper objectMapper;
     private final Set<WebSocketSession> sessions = ConcurrentHashMap.newKeySet();
     private final Map<String, String> sendersBySessionId = new ConcurrentHashMap<>();
+
+    private final Map<String, Set<String>> sessionIdsByIp = new ConcurrentHashMap<>();
+    private final Map<String, String> ipBySessionId = new ConcurrentHashMap<>();
+    private final Map<String, List<Long>> messageTimestampsBySessionId = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -30,13 +38,33 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        String ip = getClientIp(session);
+
+        Set<String> sessionIds = sessionIdsByIp.computeIfAbsent(
+                ip,
+                key -> ConcurrentHashMap.newKeySet()
+        );
+
+        if (sessionIds.size() >= MAX_CONNECTIONS_PER_IP) {
+            session.close(CloseStatus.POLICY_VIOLATION.withReason("Too many connections from same IP"));
+            return;
+        }
+
+        sessionIds.add(session.getId());
+        ipBySessionId.put(session.getId(), ip);
+
         sessions.add(session);
-        sendTo(session, systemMessage("\uCC44\uD305\uBC29\uC5D0 \uC5F0\uACB0\uB418\uC5C8\uC2B5\uB2C8\uB2E4."));
+        sendTo(session, systemMessage("채팅방에 연결되었습니다."));
         sendUserList();
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        if (isRateLimitExceeded(session)) {
+            session.close(CloseStatus.POLICY_VIOLATION.withReason("Too many messages"));
+            return;
+        }
+
         ChatMessage chatMessage = objectMapper.readValue(message.getPayload(), ChatMessage.class);
 
         if (chatMessage.type() == MessageType.JOIN) {
@@ -61,10 +89,27 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
+
+        String ip = ipBySessionId.remove(session.getId());
+
+        if (ip != null) {
+            Set<String> sessionIds = sessionIdsByIp.get(ip);
+
+            if (sessionIds != null) {
+                sessionIds.remove(session.getId());
+
+                if (sessionIds.isEmpty()) {
+                    sessionIdsByIp.remove(ip);
+                }
+            }
+        }
+
+        messageTimestampsBySessionId.remove(session.getId());
+
         String sender = sendersBySessionId.remove(session.getId());
 
         if (sender != null) {
-            broadcast(systemMessage(sender + "\uB2D8\uC774 \uD1F4\uC7A5\uD588\uC2B5\uB2C8\uB2E4."));
+            broadcast(systemMessage(sender + "님이 퇴장했습니다."));
         }
 
         sendUserList();
@@ -124,5 +169,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         return remoteAddress.getAddress().getHostAddress();
+    }
+
+    private boolean isRateLimitExceeded(WebSocketSession session) {
+        long now = System.currentTimeMillis();
+
+        List<Long> timestamps = messageTimestampsBySessionId.computeIfAbsent(
+                session.getId(),
+                key -> new ArrayList<>()
+        );
+
+        synchronized (timestamps) {
+            timestamps.removeIf(timestamp -> now - timestamp > 1000);
+
+            if (timestamps.size() >= MAX_MESSAGES_PER_SECOND) {
+                return true;
+            }
+
+            timestamps.add(now);
+            return false;
+        }
     }
 }
